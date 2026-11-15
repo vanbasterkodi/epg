@@ -1,0 +1,50 @@
+# Builds uhf.xmltv.gz, a small guide for the UHF app, from merged.xmltv.gz in the "epg"
+# release. merged.xmltv.gz (~245 MB, ~2 GB unzipped) is too big for UHF to download, so this
+# keeps only the channels listed in uhf-channels.txt and attaches the result to the same release.
+name: UHF slim EPG
+
+on:
+  schedule:
+    - cron: "40 2 * * *"   # after the daily merged.xmltv.gz upload (~01:10 UTC)
+    - cron: "40 14 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [uhf-channels.txt, scripts/slim_epg.py, .github/workflows/uhf-epg.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: uhf-epg
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download merged.xmltv.gz
+        run: gh release download epg --pattern merged.xmltv.gz --dir "$RUNNER_TEMP" --clobber
+
+      - name: Build uhf.xmltv.gz
+        run: python3 scripts/slim_epg.py "$RUNNER_TEMP/merged.xmltv.gz" uhf-channels.txt uhf.xmltv.gz
+
+      - name: Check it
+        run: |
+          python3 - <<'PY'
+          import gzip, xml.etree.ElementTree as ET
+          root = ET.parse(gzip.open("uhf.xmltv.gz")).getroot()
+          channels, programmes = len(root.findall("channel")), len(root.findall("programme"))
+          print(f"uhf.xmltv.gz: {channels} channels, {programmes} programmes")
+          if channels == 0 or programmes == 0:
+              raise SystemExit("Empty guide, not uploading")
+          PY
+          ls -l uhf.xmltv.gz
+
+      - name: Upload to the epg release
+        run: gh release upload epg uhf.xmltv.gz --clobber
