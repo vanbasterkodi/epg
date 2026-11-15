@@ -33,6 +33,7 @@ def main(src, channels_path, dst):
     with gzip.open(src, "rt", encoding="utf-8", errors="replace") as fin, \
             gzip.open(dst, "wt", encoding="utf-8", compresslevel=9) as fout:
         fout.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        fout.write('<!DOCTYPE tv SYSTEM "xmltv.dtd">\n')
         fout.write('<tv generator-info-name="UHF slim EPG (from merged.xmltv.gz)">\n')
 
         block = None  # lines of the <channel>/<programme> element being read

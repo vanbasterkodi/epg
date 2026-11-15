@@ -8,5 +8,7 @@ listed in `uhf-channels.txt`, and attaches it to the same `epg` release:
 
 https://github.com/vanbasterkodi/epg/releases/download/epg/uhf.xmltv.gz
 
+Plain XML (no redirect): https://raw.githubusercontent.com/vanbasterkodi/epg/main/uhf.xml
+
 To add a channel to the UHF guide, add its EPG id to `uhf-channels.txt`. The workflow
 rebuilds the file as soon as that change is pushed.

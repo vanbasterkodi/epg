@@ -11,6 +11,7 @@ on:
   push:
     branches: [main]
     paths: [uhf-channels.txt, scripts/slim_epg.py, .github/workflows/uhf-epg.yml]
+    # (commits that only change uhf.xml do not rebuild)
 
 permissions:
   contents: write
@@ -47,4 +48,18 @@ jobs:
           ls -l uhf.xmltv.gz
 
       - name: Upload to the epg release
-        run: gh release upload epg uhf.xmltv.gz --clobber
+        run: |
+          gunzip -c uhf.xmltv.gz > uhf.xml
+          gh release upload epg uhf.xmltv.gz uhf.xml --clobber
+
+      # Also kept in the repo as plain XML, served without a redirect from
+      # https://raw.githubusercontent.com/vanbasterkodi/epg/main/uhf.xml
+      - name: Commit uhf.xml
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uhf.xml
+          if git diff --cached --quiet; then echo "uhf.xml unchanged"; exit 0; fi
+          git commit -m "Update uhf.xml"
+          git pull --rebase origin main
+          git push origin HEAD:main
